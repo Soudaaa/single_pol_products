@@ -5,11 +5,10 @@ from scipy.interpolate import interp1d, interp2d
 
 def main(radar = None):
     """
-    This function is necessry to evaluate many of the proposed products such as VIL, ET, VILD, MESH and POSH.
-    It sorts all azimuths in an incresing order as well as the fields following the resorted azimuths.
-    It also sorts the elevation angles of each sweep if they are not constant as is the case with the DECEA radars.
-    If the azimuthal resolution is not constant between sweeps, it deletes the extra ray in case of the DECEA radars.
-    It also azimuthally interpolates the radar fields at higher tilts to maintain the same azimuth axis shape.
+    This function is necessry to evaluate many of the proposed products, such as VIL, ET, VILD, MESH and POSH.
+    It sorts all azimuths in an incresing order and fields following the resorted order. It also sorts the elevation angles of each sweep if the are not constant as with the DECEA radars.
+    If the azimuthal resolution is not constant between sweeps, it deletes the extra ray in case of the DECEA radars,
+    or interpolates the fields at higher tilts to maintain the azimuth array shape homogeneous.
     
     Parameters
     __________
@@ -85,7 +84,7 @@ def main(radar = None):
             
             # get the field slice for every sweep
             field = radar.get_field(sweep, fields)
-            field_type = field.type()
+            field_type = field.dtype
             
             # similarly, if there's one extra azimuth for the sweep, delete the last ray of the range and field's arrays.
             if field.shape[0] == 361:
@@ -130,11 +129,11 @@ def main(radar = None):
                 field_final = np.ma.concatenate([field_final, field_sorted[np.newaxis, :]])
                 
         # add the sorted and interpolated field arrays to the radar object
-        radar.fields[fields]['data'] = np.ma.vstack(field_final).astype(np.float32)
+        radar.fields[fields]['data'] = np.ma.vstack(field_final).astype(field_type)
     
     # overwrite the azimuth, elevation and number of rays arrays
-    radar.azimuth['data'] = az_final.flatten().astype(np.float32)
-    radar.elevation['data'] = ele_final.flatten().astype(np.float32)
+    radar.azimuth['data'] = az_final.flatten().astype(field_type)
+    radar.elevation['data'] = ele_final.flatten().astype(field_type)
     radar.nrays = radar.azimuth['data'].shape[0]
     
     # overwrite the ray indexes arrays

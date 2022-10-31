@@ -33,7 +33,7 @@ def calc_VIL(radar = None, zh_name = 'corrected_reflectivity', gatefilter = None
     Returns
     __________
     
-    Radar object with the VIL field included (kg/m²)
+    Radar object with the ET field included (m)
     
     """
     # the VIL constant
@@ -269,7 +269,7 @@ def calc_VILD(radar = None, VIL_name = 'VIL', ET_name = 'ET'):
     Returns
     __________
     
-    Radar object with the VILD field included (g/m³)
+    Radar object with the ET field included (m)
     
     """
     
