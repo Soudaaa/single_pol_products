@@ -112,14 +112,13 @@ def main(radar = None):
                 r = range_interpolator(az_final[sweep])
                 field_interpolator = interp2d(ranges, azi_sorted, field_sorted)
                 field_interp = field_interpolator(ranges, az_final[sweep])
-                field_sorted = field_interp
+                field_sorted = np.round(field_interp, 3)
              
             # mask out areas of the interpolation where the range exceeds the unambiguous range
             field_sorted = np.ma.masked_where(r >= max_range, field_sorted)
             
             # mask previously masked gates that where filled during the interpolation
             field_sorted = np.ma.masked_equal(field_sorted, field_sorted.min())
-            
             # if the base sweep, copy the the array creating a new axis allowing the vertical stacking of the array
             if sweep == sweep_min:
                 field_final = field_sorted[np.newaxis, :]
@@ -130,6 +129,7 @@ def main(radar = None):
                 
         # add the sorted and interpolated field arrays to the radar object
         radar.fields[fields]['data'] = np.ma.vstack(field_final).astype(field_type)
+        radar.fields[fields]['data'] = np.ma.masked_equal(radar.fields[fields]['data'], radar.fields[fields]['data'].min())
     
     # overwrite the azimuth, elevation and number of rays arrays
     radar.azimuth['data'] = az_final.flatten().astype(field_type)
