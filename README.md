@@ -6,6 +6,8 @@ The notebooks also include other hail parameters such as the Kinetic Energy (KE)
 
 SciPy
 
+NumPy
+
 [Py-ART](https://github.com/ARM-DOE/pyart)
 
 [PyHail](https://github.com/joshua-wx/pyhail)
