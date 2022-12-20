@@ -2,7 +2,6 @@ import pyart
 import numpy as np
 import copy
 from scipy.interpolate import interp1d, interp2d
-from numba import njit
 
 def z2r(ref = None):
     """
@@ -10,7 +9,7 @@ def z2r(ref = None):
     """
     return 10**(ref/10)
 
-def calc_VIL(radar = None, zh_name = 'corrected_reflectivity', vil_name = 'VIL'):
+def calc_VIL(radar = None, zh_name = 'corrected_reflectivity', VIL_name = 'VIL'):
     """
     Evaluates the Vertically Integrated Liquid (VIL) as in Amburn and Wolf (1997).
     In order for this function to work, all azimuths and elevations (if not constant as with some brazilian radars)
@@ -30,15 +29,13 @@ def calc_VIL(radar = None, zh_name = 'corrected_reflectivity', vil_name = 'VIL')
         Radar object used
     zh_name: str
         Name of the horizontal reflectivity factor field. Default is corrected_reflectivity
-    threshold: int of float
-        minimum reflectivity threshold need to seek for the echo tops
-    et_name: str
+    VIL_name: str
         name used for the Echo Tops field. Default is ET.
         
     Returns
     __________
     
-    Radar object with the ET field included (m)
+    Radar object with the VIL field included (kg/m²)
     
     """
     const = 3.44e-6
@@ -132,14 +129,13 @@ def calc_VIL(radar = None, zh_name = 'corrected_reflectivity', vil_name = 'VIL')
     VIL_field[radar.get_slice(sort_idx[0])] = VIL
     
     # add the VIL field to the radar object
-    radar.add_field(vil_name, dic = {'units':'kg m$^{-2}$',
+    radar.add_field(VIL_name, dic = {'units':'kg m$^{-2}$',
                                   'data':VIL_field, 'standard_name':'vertically_integrated_liquid',
                                   'long_name':'Vertically Integrated Liquid', 
                                   'coordinates':'elevation azimuth range'}, replace_existing=True)
     
-    return radar
 
-def calc_ET(radar = None, zh_name = 'corrected_reflectivity', threshold = 18., et_name = 'ET'):
+def calc_ET(radar = None, zh_name = 'corrected_reflectivity', threshold = 18.5, ET_name = 'ET'):
     """
     Retrieves the echo tops based on a minimum horizontal reflectivity threshold.
     In order for this function to work, all azimuths and elevations (if not constant, as with some brazilian radar)
@@ -242,12 +238,11 @@ def calc_ET(radar = None, zh_name = 'corrected_reflectivity', threshold = 18., e
     ET_field[radar.get_slice(sort_idx[0])] = ET
     
     # add the Echo Tops field to the radar
-    radar.add_field(et_name, dic = {'units':'m',
+    radar.add_field(ET_name, dic = {'units':'m',
                                  'data':ET_field, 'standard_name':f'{threshold}_dBZ_echo_tops',
                                  'long_name':f'{threshold} dBZ echo tops', 
                                  'coordinates':'elevation azimuth range'}, replace_existing=True)
     
-    return radar
     
 def calc_VILD(radar = None, VIL_name = 'VIL', ET_name = 'ET'):
     """
@@ -277,7 +272,7 @@ def calc_VILD(radar = None, VIL_name = 'VIL', ET_name = 'ET'):
     Returns
     __________
     
-    Radar object with the ET field included (m)
+    Radar object with the VILD field included (m)
     
     """
     
@@ -287,9 +282,8 @@ def calc_VILD(radar = None, VIL_name = 'VIL', ET_name = 'ET'):
                                   'long_name':'Vertically Integrated Liquid Density', 
                                   'coordinates':'elevation azimuth range'}, replace_existing=True)
     
-    return radar
 
-def calc_WV(radar = None, zh_name = 'corrected_reflectivity', h0c = None, wv_name = 'Waldvogel'):
+def calc_WV(radar = None, zh_name = 'corrected_reflectivity', H0c = None, wv_name = 'Waldvogel'):
     """
     Retrieves the height difference between the 0 °C isoterm and the maximum height of 45 dBZ for each gate, i.e., delta_H = H_45 - H_0 as in Waldvogel et al. (1979).
     In order for this function to work, all azimuths and elevations (if not constant, as with some brazilian radar)
@@ -311,7 +305,7 @@ def calc_WV(radar = None, zh_name = 'corrected_reflectivity', h0c = None, wv_nam
     zh_name: str
         Name of the horizontal reflectivity field factor. Default is corrected_reflectivity
     h0c: int of float
-        height of the 0 °C isoterm in m.
+        height of the 0 °C isoterm above the mean sea level in m.
     wg_name: str
         name used for the Echo Tops field. Default is Waldvogel.
         
@@ -351,13 +345,13 @@ def calc_WV(radar = None, zh_name = 'corrected_reflectivity', h0c = None, wv_nam
         x, y, z = radar.get_gate_x_y_z(i)
         x_stacked[i, :, :] = x
         y_stacked[i, :, :] = y
-        z_stacked[i, :, :] = z
+        z_stacked[i, :, :] = z + radar.altitude['data']
     
     # get the range of each gate
     r = np.sqrt(x_stacked**2 + y_stacked**2)
     
     # create a mask to remove gates below the desired threshold
-    valid = ((z_stacked >= h0c) & (ref_stacked >= 45))
+    valid = ((z_stacked >= H0c) & (ref_stacked >= 45))
 
     # loop over every ray seeking for valid gates
     for az_idx in range(n_rays):
@@ -388,7 +382,7 @@ def calc_WV(radar = None, zh_name = 'corrected_reflectivity', h0c = None, wv_nam
                     H45_temp = np.nanmax(slice_H45_elements[el_idx, closest_idx])
             # once the iteration is finished, subtract the 45 dBZ heights by the 0 °C heights and store them in the lowest sweep
             if H45_temp > 0:
-                WV[az_idx, rg_idx] = H45_temp - h0c
+                WV[az_idx, rg_idx] = H45_temp - H0c
             
     # mask gates where the index is equal to zero
     WV = np.ma.masked_equal(WV, 0)
@@ -402,5 +396,3 @@ def calc_WV(radar = None, zh_name = 'corrected_reflectivity', h0c = None, wv_nam
                                         'data': WV_field, 'standard_name':'Waldvogel',
                                         'long_name':'Waldvogel', 
                                         'coordinates':'elevation azimuth range'}, replace_existing=True)
-
-    return radar

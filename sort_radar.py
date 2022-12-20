@@ -2,6 +2,7 @@ import pyart
 import numpy as np
 import copy
 from scipy.interpolate import interp1d, interp2d
+from scipy.ndimage import median_filter
 
 def main(radar = None):
     """
@@ -139,5 +140,4 @@ def main(radar = None):
     # overwrite the ray indexes arrays
     radar.sweep_start_ray_index['data'] = np.arange(0, radar.azimuth['data'].shape[0], az_final[0].shape[0], dtype = np.int32)
     radar.sweep_end_ray_index['data'] = np.arange(radar.sweep_start_ray_index['data'][1] - 1, radar.azimuth['data'].shape[0], az_final[0].shape[0], np.int32)
-    
-    return radar
+
