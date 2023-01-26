@@ -80,6 +80,9 @@ def calc_VIL(radar = None, zh_name = 'corrected_reflectivity', VIL_name = 'VIL')
     
     # compute the dz of each gate between sweeps
     for i in range(n_sweeps):
+        if i == 0:
+            dz_stacked[i, :, :] = np.zeros_like(ref_stacked[i, :, :])
+            meanref_stacked[i, :, :] = ref[i + 1, :, :] 
         if i < n_sweeps - 1:
             dz_stacked[i, :, :] = z_stacked[i + 1, :, :] - z_stacked[i, :, :]
             meanref_stacked[i, :, :] = (ref[i + 1, :, :] + ref[i, :, :])/2
