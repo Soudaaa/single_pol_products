@@ -61,6 +61,7 @@ def calc_VIL(radar = None, zh_name = 'corrected_reflectivity', VIL_name = 'VIL')
     y_stacked = np.zeros_like(ref_stacked)
     z_stacked = np.zeros_like(ref_stacked)
     dz_stacked = np.zeros_like(ref_stacked)
+    meanref_stacked = np.zeros_like(ref_stacked)
     VIL = np.zeros_like(ref_stacked[0, :, :])
     
     # iterate over each sweep and stack the reflectivity, x, y, z coordinates
@@ -81,14 +82,16 @@ def calc_VIL(radar = None, zh_name = 'corrected_reflectivity', VIL_name = 'VIL')
     for i in range(n_sweeps):
         if i < n_sweeps - 1:
             dz_stacked[i, :, :] = z_stacked[i + 1, :, :] - z_stacked[i, :, :]
+            meanref_stacked[i, :, :] = (ref[i + 1, :, :] + ref[i, :, :])/2
         if i == n_sweeps - 1:
             dz_stacked[i, :, :] = z_stacked[i, :, :] - z_stacked[i - 1, :, :]
+            meanref_stacked[i, :, :] = (ref[i, :, :] + ref[i - 1, :, :])/2
     
     # mask gates where the reflectivity is below 0 dBZ
     valid = (ref_stacked > 1)
     
     # compute VIL for every gate
-    VIL_elements = const*(ref**(4/7))*dz_stacked
+    VIL_elements = const*(meanref_stacked**(4/7))*dz_stacked
     
     # loop over every ray seeking for valid gates
     for az_idx in range(n_rays):
