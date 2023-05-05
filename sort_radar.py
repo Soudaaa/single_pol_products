@@ -23,6 +23,8 @@ def main(radar = None):
     Radar object with sorted azimuths, elevations and fields.
     """
     
+    max_shape = max([radar.azimuth['data'][x].shape for x in radar.iter_slice()])
+
     # get the lowest elevation angle and range gates
     sweep_min = np.min(radar.sweep_number['data'])
     ranges = radar.range['data']
@@ -56,13 +58,13 @@ def main(radar = None):
                 azimuth_final = azi
         
         # if higher tilt azimuths have a lower azimuthal resolution, perform the operations needed to maintain an homogeneous shape between arrays
-        if az_sorted.shape[0] != azimuth_final.shape[0]:
+        if az_sorted.shape[0] != max_shape:
             # interpolate between azimuths using the shape of the first sweep
-            az_sorted = np.linspace(az_sorted[0], az_sorted[-1], azimuth_final.shape[0])
+            az_sorted = np.linspace(az_sorted[0], az_sorted[-1], max_shape[0])
             # expand the elevation array to have the same shape as the azimuths
-            ele_sorted = np.resize(ele_sorted, azimuth_final.shape[0])
+            ele_sorted = np.resize(ele_sorted, max_shape[0])
             # create an azimuth index array
-            az_idx = np.arange(0, azimuth_final.shape[0], 1)
+            az_idx = np.arange(0, max_shape[0], 1)
         
         # if the base sweep, copy the azimuths, elevations and indexes creating a new axis allowing the vertical stacking of the array
         if sweep == sweep_min:
